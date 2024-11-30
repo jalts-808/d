@@ -60,7 +60,7 @@ pipeline {
                     export DJANGO_SETTINGS_MODULE=ecom.settings
                     echo PYTHONPATH: $PYTHONPATH
                     echo DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
-                    python ecom/scripts/seed_db.py
+                    python scripts/seed_db.py
                 '''
             }
         }
