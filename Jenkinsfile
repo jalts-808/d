@@ -14,12 +14,12 @@ pipeline {
         }
         stage('Seed Database') {
             steps {
-                sh '. venv/bin/activate && python scripts/seed_db.py'
+                sh '. venv/bin/activate && python ecom/scripts/seed_db.py' // Updated path
             }
         }
         stage('Run Tests') {
             steps {
-                sh '. venv/bin/activate && pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings'
+                sh '. venv/bin/activate && pytest ecom/cart/tests --junitxml=pytest_report.xml --maxfail=5 --disable-warnings' // Updated path
             }
         }
     }
