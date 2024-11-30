@@ -1,5 +1,9 @@
 pipeline {
     agent any
+    environment {
+        DJANGO_SETTINGS_MODULE = 'ecom.settings'
+        PYTHONPATH = "${WORKSPACE}/ecom"
+    }
     stages {
         stage('Debug Start') {
             steps {
@@ -23,10 +27,10 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Starting Install Dependencies Stage...'
-                sh 'python3 --version || python --version'
-                sh 'python3 -m pip --version || python -m pip --version'
-                sh 'python3 -m venv venv || python -m venv venv'
                 sh '''
+                    python3 --version || python --version
+                    python3 -m pip --version || python -m pip --version
+                    python3 -m venv venv || python -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
@@ -53,8 +57,6 @@ pipeline {
                 echo 'Running database migrations...'
                 sh '''
                     . venv/bin/activate
-                    export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
-                    export DJANGO_SETTINGS_MODULE=ecom.settings
                     python ecom/manage.py makemigrations
                     python ecom/manage.py migrate
                 '''
@@ -65,8 +67,6 @@ pipeline {
                 echo 'Starting Seed Database Stage...'
                 sh '''
                     . venv/bin/activate
-                    export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
-                    export DJANGO_SETTINGS_MODULE=ecom.settings
                     echo PYTHONPATH: $PYTHONPATH
                     echo DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
                     python scripts/seed_db.py
@@ -78,9 +78,17 @@ pipeline {
                 echo 'Starting Run Tests Stage...'
                 sh '''
                     . venv/bin/activate
-                    pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings
+                    export PYTHONPATH=$WORKSPACE/ecom
+                    echo "PYTHONPATH: $PYTHONPATH"
+                    echo "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
+                    # Debugging Steps
+                    python -c "help('modules')"
+                    python -c "from django.conf import settings; print(settings.INSTALLED_APPS)"
+                    python ecom/manage.py showmigrations
+                    # Run pytest
+                    pytest --ds=ecom.settings --junitxml=pytest_report.xml --maxfail=5 --disable-warnings
                 '''
-                sh 'ls -la pytest_report.xml'
+                sh 'ls -la pytest_report.xml || echo "Test report not found!"'
             }
         }
     }
