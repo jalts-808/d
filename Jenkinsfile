@@ -36,7 +36,7 @@ pipeline {
         stage('Setup Media Directory') {
             steps {
                 echo 'Creating media directory...'
-                sh 'mkdir -p media/uploads/products'
+                sh 'mkdir -p ecom/media/uploads/products'
             }
         }
         stage('Migrate Database') {
@@ -46,8 +46,8 @@ pipeline {
                     . venv/bin/activate
                     export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
                     export DJANGO_SETTINGS_MODULE=ecom.settings
-                    python manage.py makemigrations
-                    python manage.py migrate
+                    python ecom/manage.py makemigrations
+                    python ecom/manage.py migrate
                 '''
             }
         }
@@ -60,7 +60,7 @@ pipeline {
                     export DJANGO_SETTINGS_MODULE=ecom.settings
                     echo PYTHONPATH: $PYTHONPATH
                     echo DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
-                    python scripts/seed_db.py
+                    python ecom/scripts/seed_db.py
                 '''
             }
         }
