@@ -33,6 +33,15 @@ pipeline {
                 '''
             }
         }
+        stage('Verify pytest Installation') {
+            steps {
+                echo 'Verifying pytest Installation...'
+                sh '''
+                    . venv/bin/activate
+                    pytest --version
+                '''
+            }
+        }
         stage('Setup Media Directory') {
             steps {
                 echo 'Creating media directory...'
