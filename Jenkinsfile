@@ -81,11 +81,7 @@ pipeline {
                     export PYTHONPATH=$WORKSPACE/ecom
                     echo "PYTHONPATH: $PYTHONPATH"
                     echo "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
-                    # Debugging Steps
-                    python -c "help('modules')"
-                    python -c "from django.conf import settings; print(settings.INSTALLED_APPS)"
-                    python ecom/manage.py showmigrations
-                    # Run pytest
+                    python -c "import pytest_django; print('pytest-django installed')"
                     pytest --ds=ecom.settings --junitxml=pytest_report.xml --maxfail=5 --disable-warnings
                 '''
                 sh 'ls -la pytest_report.xml || echo "Test report not found!"'
