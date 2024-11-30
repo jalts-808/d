@@ -1,6 +1,15 @@
 pipeline {
     agent any
     stages {
+        stage('Debug Start') {
+            steps {
+                echo 'Starting Debugging Stage at the Beginning...'
+                sh 'echo "Current PATH: $PATH"'
+                sh 'python3 --version || python --version'
+                sh 'python3 -m pip --version || python -m pip --version'
+                sh 'env'
+            }
+        }
         stage('Checkout') {
             steps {
                 echo 'Starting Checkout Stage...'
@@ -48,6 +57,11 @@ pipeline {
     }
     post {
         always {
+            echo 'Starting Debugging Stage at the End...'
+            sh 'echo "Final PATH: $PATH"'
+            sh 'python3 --version || python --version'
+            sh 'python3 -m pip --version || python -m pip --version'
+            sh 'env'
             echo 'Publishing test results...'
             junit 'pytest_report.xml'
         }
