@@ -9,6 +9,7 @@ pipeline {
                 sh 'python3 -m pip --version || python -m pip --version'
                 sh 'env'
                 sh 'echo PYTHONPATH: $PYTHONPATH'
+                sh 'echo DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE'
             }
         }
         stage('Checkout') {
@@ -40,6 +41,7 @@ pipeline {
                 sh '''
                     . venv/bin/activate
                     export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
+                    export DJANGO_SETTINGS_MODULE=ecom.settings
                     python scripts/seed_db.py
                 '''
             }
@@ -65,10 +67,11 @@ pipeline {
             sh 'python3 -m pip --version || python -m pip --version'
             sh 'env'
             sh 'echo PYTHONPATH: $PYTHONPATH'
+            sh 'echo DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE'
             echo 'Publishing test results...'
             script {
-                def testFiles = findFiles(glob: 'pytest_report.xml')
-                if (testFiles.length > 0) {
+                def testReport = fileExists('pytest_report.xml')
+                if (testReport) {
                     junit 'pytest_report.xml'
                 } else {
                     echo 'No test report found. Skipping JUnit reporting.'
