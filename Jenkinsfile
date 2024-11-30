@@ -5,13 +5,15 @@ pipeline {
             steps {
                 echo 'Starting Checkout Stage...'
                 checkout scm
+                sh 'pwd'
+                sh 'ls -la'
             }
         }
         stage('Install Dependencies') {
             steps {
                 echo 'Starting Install Dependencies Stage...'
-                sh 'pwd'
-                sh 'ls -la'
+                sh 'python --version'
+                sh 'python -m pip --version'
                 sh 'python -m venv venv'
                 sh '. venv/bin/activate && pip install -r requirements.txt'
             }
@@ -30,6 +32,7 @@ pipeline {
                 sh 'pwd'
                 sh 'ls -la'
                 sh '. venv/bin/activate && pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings'
+                sh 'ls -la pytest_report.xml'
             }
         }
     }
@@ -40,6 +43,3 @@ pipeline {
         }
     }
 }
-
-activatesdf
-activatesdff
