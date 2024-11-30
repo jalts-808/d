@@ -12,14 +12,9 @@ pipeline {
                 sh '. venv/bin/activate && pip install -r requirements.txt'
             }
         }
-        stage('Prepare Database') {
-            steps {
-                sh '. venv/bin/activate && python manage.py migrate'
-            }
-        }
         stage('Seed Database') {
             steps {
-                sh '. venv/bin/activate && python manage.py shell < scripts/seed_db.py'
+                sh '. venv/bin/activate && python scripts/seed_db.py'
             }
         }
         stage('Run Tests') {
@@ -27,10 +22,10 @@ pipeline {
                 sh '. venv/bin/activate && pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings'
             }
         }
-        stage('Publish Test Results') {
-            steps {
-                junit 'pytest_report.xml'
-            }
+    }
+    post {
+        always {
+            junit 'pytest_report.xml' // Publish the test results
         }
     }
 }
