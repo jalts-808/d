@@ -92,6 +92,25 @@ pipeline {
                 sh 'ls -la pytest_report.xml || echo "Test report not found!"'
             }
         }
+        stage('Run Payment Tests') { // New stage
+            steps {
+                echo 'Running Payment App Tests...'
+                script {
+                    try {
+                        sh '''
+                            . venv/bin/activate
+                            export PYTHONPATH=$WORKSPACE/ecom
+                            echo "PYTHONPATH: $PYTHONPATH"
+                            echo "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
+                            pytest ecom/payment/tests/test_payment.py --ds=ecom.settings --junitxml=pytest_payment_report.xml --maxfail=5 --disable-warnings
+                        '''
+                    } catch (Exception e) {
+                        echo "Payment tests failed but build will continue."
+                    }
+                }
+                sh 'ls -la pytest_payment_report.xml || echo "Payment test report not found!"'
+            }
+        }
     }
     post {
         always {
@@ -104,11 +123,18 @@ pipeline {
             sh 'echo DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE'
             echo 'Publishing test results...'
             script {
-                def testReport = fileExists('pytest_report.xml')
-                if (testReport) {
+                def mainTestReport = fileExists('pytest_report.xml')
+                if (mainTestReport) {
                     junit 'pytest_report.xml'
                 } else {
-                    echo 'No test report found. Skipping JUnit reporting.'
+                    echo 'No test report found for main tests. Skipping JUnit reporting.'
+                }
+
+                def paymentTestReport = fileExists('pytest_payment_report.xml')
+                if (paymentTestReport) {
+                    junit 'pytest_payment_report.xml'
+                } else {
+                    echo 'No test report found for payment tests. Skipping JUnit reporting.'
                 }
             }
         }
