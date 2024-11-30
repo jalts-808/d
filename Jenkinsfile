@@ -15,7 +15,11 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '. venv/bin/activate && pytest --maxfail=5 --disable-warnings --junitxml=pytest_report.xml'
-                junit 'pytest_report.xml' // Publish JUnit report
+            }
+        }
+        stage('Publish Test Results') {
+            steps {
+                junit 'pytest_report.xml'
             }
         }
     }
