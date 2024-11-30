@@ -33,11 +33,27 @@ pipeline {
                 '''
             }
         }
+        stage('Setup Media Directory') {
+            steps {
+                echo 'Creating media directory...'
+                sh 'mkdir -p media/uploads/products'
+            }
+        }
+        stage('Migrate Database') {
+            steps {
+                echo 'Running database migrations...'
+                sh '''
+                    . venv/bin/activate
+                    export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
+                    export DJANGO_SETTINGS_MODULE=ecom.settings
+                    python manage.py makemigrations
+                    python manage.py migrate
+                '''
+            }
+        }
         stage('Seed Database') {
             steps {
                 echo 'Starting Seed Database Stage...'
-                sh 'pwd'
-                sh 'ls -R'
                 sh '''
                     . venv/bin/activate
                     export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
@@ -51,8 +67,6 @@ pipeline {
         stage('Run Tests') {
             steps {
                 echo 'Starting Run Tests Stage...'
-                sh 'pwd'
-                sh 'ls -R'
                 sh '''
                     . venv/bin/activate
                     pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings
