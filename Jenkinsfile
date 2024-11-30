@@ -5,41 +5,51 @@ pipeline {
             steps {
                 echo 'Starting Checkout Stage...'
                 checkout scm
-                sh 'pwd'
-                sh 'ls -la'
+                sh 'pwd' // Print current working directory
+                sh 'ls -la' // List files for debugging
             }
         }
         stage('Install Dependencies') {
             steps {
                 echo 'Starting Install Dependencies Stage...'
-                sh 'python --version'
-                sh 'python -m pip --version'
-                sh 'python -m venv venv'
-                sh '. venv/bin/activate && pip install -r requirements.txt'
+                sh 'python3 --version || python --version' // Ensure Python is available
+                sh 'python3 -m pip --version || python -m pip --version' // Ensure pip is available
+                sh 'python3 -m venv venv || python -m venv venv' // Create virtual environment
+                sh '''
+                    source venv/bin/activate || . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                ''' // Activate venv and install dependencies
             }
         }
         stage('Seed Database') {
             steps {
                 echo 'Starting Seed Database Stage...'
-                sh 'pwd'
-                sh 'ls -la'
-                sh '. venv/bin/activate && python scripts/seed_db.py'
+                sh 'pwd' // Print current working directory
+                sh 'ls -la' // List files for debugging
+                sh '''
+                    source venv/bin/activate || . venv/bin/activate
+                    python scripts/seed_db.py
+                ''' // Seed database
             }
         }
         stage('Run Tests') {
             steps {
                 echo 'Starting Run Tests Stage...'
-                sh 'pwd'
-                sh 'ls -la'
-                sh '. venv/bin/activate && pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings'
-                sh 'ls -la pytest_report.xml'
+                sh 'pwd' // Print current working directory
+                sh 'ls -la' // List files for debugging
+                sh '''
+                    source venv/bin/activate || . venv/bin/activate
+                    pytest --junitxml=pytest_report.xml --maxfail=5 --disable-warnings
+                ''' // Run tests
+                sh 'ls -la pytest_report.xml' // Verify pytest report exists
             }
         }
     }
     post {
         always {
             echo 'Publishing test results...'
-            junit 'pytest_report.xml'
+            junit 'pytest_report.xml' // Publish the test results
         }
     }
 }
