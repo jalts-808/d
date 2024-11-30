@@ -8,6 +8,7 @@ pipeline {
                 sh 'python3 --version || python --version'
                 sh 'python3 -m pip --version || python -m pip --version'
                 sh 'env'
+                sh 'echo PYTHONPATH: $PYTHONPATH'
             }
         }
         stage('Checkout') {
@@ -38,6 +39,7 @@ pipeline {
                 sh 'ls -R'
                 sh '''
                     . venv/bin/activate
+                    export PYTHONPATH=$PYTHONPATH:$WORKSPACE/ecom
                     python scripts/seed_db.py
                 '''
             }
@@ -62,8 +64,16 @@ pipeline {
             sh 'python3 --version || python --version'
             sh 'python3 -m pip --version || python -m pip --version'
             sh 'env'
+            sh 'echo PYTHONPATH: $PYTHONPATH'
             echo 'Publishing test results...'
-            junit 'pytest_report.xml'
+            script {
+                def testFiles = findFiles(glob: 'pytest_report.xml')
+                if (testFiles.length > 0) {
+                    junit 'pytest_report.xml'
+                } else {
+                    echo 'No test report found. Skipping JUnit reporting.'
+                }
+            }
         }
     }
 }
