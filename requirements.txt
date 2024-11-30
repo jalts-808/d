@@ -53,4 +53,4 @@ typing-extensions==4.12.2
     # via dj-database-url
 whitenoise==6.7.0
     # via -r requirements.in
-pytest==<version>
+pytest==7.4.0
