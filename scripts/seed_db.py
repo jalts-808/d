@@ -1,4 +1,12 @@
-# scripts/seed_db.py
+import os
+import django
+
+# Ensure DJANGO_SETTINGS_MODULE is set
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecom.settings')
+
+# Initialize Django
+django.setup()
+
 from store.models import Category, Product
 
 def run():
