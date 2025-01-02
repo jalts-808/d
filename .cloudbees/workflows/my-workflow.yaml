@@ -39,7 +39,7 @@ jobs:
           cd ecom
           pytest --maxfail=5 --disable-warnings --junitxml=test-results.xml
       - name: Publish test results
-        uses: cloudbees/test-results:latest
+        uses: cloudbees-io/publish-test-results@v1
         with:
-          format: junit
-          path: ecom/test-results.xml
+          test-type: junit  # Specify the test result format
+          folder-name: ecom/test-results.xml  # Path to the test results file
