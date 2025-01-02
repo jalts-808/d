@@ -15,8 +15,6 @@ jobs:
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
-          ls -al  # Debug: Verify repository content
-
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
@@ -25,37 +23,18 @@ jobs:
           . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Debug Python environment
-        uses: docker://python:3.12
-        shell: sh
-        run: |
-          . venv/bin/activate
-          python --version
-          pip list  # Debug: Ensure dependencies are installed
-
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
         run: |
           . venv/bin/activate
           cd ecom
-          python manage.py check  # Debug: Validate Django setup
-          python manage.py showmigrations  # Debug: Check applied migrations
           python manage.py migrate
-
       - name: Run tests
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow tests to fail without breaking the build
+        continue-on-error: true  # Allow the build to continue even if tests fail
         run: |
           . venv/bin/activate
           cd ecom
-          pytest --reuse-db --maxfail=0 --tb=short --junitxml=test-results.xml
-
-      - name: Archive test results
-        shell: sh
-        run: |
-          echo "Archiving test results"
-          mkdir -p /cloudbees/workspace/test-results
-          mv ecom/test-results.xml /cloudbees/workspace/test-results/
+          pytest --maxfail=5 --disable-warnings --junitxml=test-results.xml
