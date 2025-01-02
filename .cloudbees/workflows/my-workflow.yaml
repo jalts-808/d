@@ -1,6 +1,6 @@
 apiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
-name: My workflow
+name: Simple Build Workflow
 
 on:
   push:
@@ -32,26 +32,3 @@ jobs:
           . venv/bin/activate
           cd ecom
           python manage.py migrate
-
-      - name: Collect static files
-        uses: docker://python:3.12
-        shell: sh
-        run: |
-          . venv/bin/activate
-          cd ecom
-          python manage.py collectstatic --noinput
-
-      - name: Run tests
-        uses: docker://python:3.12
-        shell: sh
-        run: |
-          . venv/bin/activate
-          cd ecom
-          pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
-          ls -l /workspace  # Verify that the test-results.xml file is generated
-
-      - name: Publish test results
-        uses: cloudbees-io/publish-test-results@v1
-        with:
-          test-type: JUnit
-          folder-name: /workspace/test-results.xml
