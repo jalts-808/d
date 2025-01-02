@@ -10,6 +10,11 @@ on:
 jobs:
   build:
     steps:
+      - name: Checkout repository
+        uses: docker://alpine/git
+        shell: sh
+        run: |
+          git clone ${REPO_URL} .
       - name: Install dependencies
         uses: docker://python:3.12
         shell: sh
@@ -19,3 +24,4 @@ jobs:
         uses: docker://python:3.12
         shell: sh
         run: pytest
+
