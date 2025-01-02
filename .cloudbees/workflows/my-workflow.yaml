@@ -38,3 +38,8 @@ jobs:
           . venv/bin/activate
           cd ecom
           pytest --maxfail=5 --disable-warnings --junitxml=test-results.xml
+      - name: Publish test results
+        uses: cloudbees/test-results:latest
+        with:
+          format: junit
+          path: ecom/test-results.xml
