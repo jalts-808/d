@@ -28,10 +28,12 @@ jobs:
         shell: sh
         run: |
           . venv/bin/activate
+          cd ecom
           python manage.py migrate
       - name: Run tests
         uses: docker://python:3.12
         shell: sh
         run: |
           . venv/bin/activate
+          cd ecom
           pytest
