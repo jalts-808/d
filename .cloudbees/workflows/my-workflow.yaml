@@ -44,20 +44,14 @@ jobs:
       - name: Run tests
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow the workflow to proceed even if tests fail
         run: |
           . venv/bin/activate
           cd ecom
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
           ls -l /workspace  # Verify that the test-results.xml file is generated
 
-      - name: Publish test results manually
-        uses: docker://alpine
-        shell: sh
-        run: |
-          if [ -f /workspace/test-results.xml ]; then
-            echo "Test results found. Publishing..."
-            cat /workspace/test-results.xml
-          else
-            echo "Test results file not found!"
-          fi
+      - name: Publish test results
+        uses: cloudbees-io/publish-test-results@v1
+        with:
+          test-type: JUnit
+          folder-name: /workspace/test-results.xml
