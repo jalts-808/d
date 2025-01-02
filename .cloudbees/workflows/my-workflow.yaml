@@ -33,13 +33,12 @@ jobs:
       - name: Run tests
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow the build to continue even if tests fail
         run: |
           . venv/bin/activate
           cd ecom
-          pytest --maxfail=5 --disable-warnings --junitxml=test-results.xml
+          pytest --junitxml=../test-results.xml --maxfail=5 --disable-warnings
       - name: Publish test results
-        uses: cloudbees-io/publish-test-results@v1
+        uses: cloudbees/test-results:latest
         with:
-          test-type: junit  # Specify the test result format
-          folder-name: ecom/test-results.xml  # Path to the test results file
+          format: junit
+          path: test-results.xml
