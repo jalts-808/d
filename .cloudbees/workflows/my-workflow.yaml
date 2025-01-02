@@ -41,18 +41,18 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      - name: Run tests and collect results
+      - name: Run tests
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true
+        continue-on-error: true  # Allow the workflow to proceed even if tests fail
         run: |
           . venv/bin/activate
           cd ecom
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
-          ls -l /workspace  # Verify test-results.xml exists
+          ls -l /workspace  # Verify that the test-results.xml file is generated
 
-      - name: Publish test results to CloudBees
-        action: test-result-collector  # Explicitly define the test action
+      - name: Publish test results
+        uses: cloudbees-io/publish-test-results@v1
         with:
-          format: junit
-          path: /workspace/test-results.xml
+          test-type: JUnit
+          folder-name: /workspace/test-results.xml
