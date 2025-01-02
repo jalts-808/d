@@ -50,16 +50,17 @@ jobs:
           . venv/bin/activate
           cd ecom
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
-          ls -l /workspace  # Ensure test-results.xml is generated
+          ls -l /workspace  # Verify that the test-results.xml file is generated
 
       - name: Publish test results
-        uses: cloudbees/test-results:latest
-        with:
-          format: junit
-          path: /workspace/test-results.xml
+        uses: docker://cloudbees/test-results:latest
+        shell: sh
+        run: |
+          ls -l /workspace  # Confirm test-results.xml exists
+          /cloudbees/test-results/publish --path /workspace/test-results.xml --format junit
 
-      - name: Debug workspace
+      - name: Debug test results
         uses: docker://alpine
         shell: sh
         run: |
-          ls -l /workspace
+          ls -l /workspace  # Final debug to ensure files are in place
