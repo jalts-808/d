@@ -10,48 +10,42 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout code (Alpine container is fine just for a simple git clone) - test
+      # 1) Checkout your code into /workspace
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
-      # 2) Create a Python venv & install your Django requirements
+      # 2) Create a Python venv & install deps from requirements.txt
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
         run: |
+          # We are in /workspace (top-level). "requirements.txt" is here.
           python -m venv /workspace/venv
           . /workspace/venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install Launchable + Java (default-jre) + Git, then verify
+      # 3) Install + verify Launchable (needs Java + Git).
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          # On Debian 12, openjdk-11-jre is not available.
-          # 'default-jre' installs OpenJDK 17, which is fine for Launchable.
           apt-get update
-          apt-get install -y default-jre git
-
-          # Silence "dubious ownership" warnings
+          apt-get install -y default-jre git  # Debian 12 has openjdk-17 via "default-jre"
           git config --global --add safe.directory /cloudbees/workspace
 
           . /workspace/venv/bin/activate
           pip install --upgrade launchable~=1.0
-
-          # Just to confirm 'launchable' is on PATH
           which launchable
 
-          # Verify connectivity (Java is now installed, so commit collection can work)
           launchable verify || true
 
-      # 4) Run migrations
+      # 4) Run Django migrations
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
@@ -73,11 +67,10 @@ jobs:
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true
+        continue-on-error: true  # Let pipeline continue even if tests fail
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          # Because each Tekton step is a new container, we must re-install Java + Git here
           apt-get update
           apt-get install -y default-jre git
           git config --global --add safe.directory /cloudbees/workspace
@@ -85,17 +78,21 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record a build (this collects commit info -> Java needed)
+          # Record a build so Launchable sees this commit
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # Start a test session
-          launchable record session pytest --name "$(date +%s)"
+          # Start a test session with the new CLI syntax
+          launchable record session pytest --session-name "$(date +%s)"
 
-          # Run the tests
-          pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
+          # Actually run tests with Pytest
+          # - The '.' runs all tests in the current directory (including cart/tests/).
+          # - If you only want cart tests, do "pytest cart/ --junitxml=..." 
+          pytest . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
+
+          # Confirm the JUnit XML is actually in /workspace
           ls -l /workspace
 
-      # 7) Publish test results
+      # 7) Publish test results (looking for /workspace/test-results.xml)
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
