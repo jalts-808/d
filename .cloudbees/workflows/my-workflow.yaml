@@ -82,7 +82,7 @@ jobs:
           # IMPORTANT: older CLI usage - no extra `--`
           launchable record session pytest \
             --session-name "$(date +%s)" \
-            . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
+            . --junitxml=/workspace/test-results.xml || true
 
           # Confirm test-results.xml is generated
           ls -l /workspace
