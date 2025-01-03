@@ -25,9 +25,10 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install + Verify Launchable CLI
+      - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
+        continue-on-error: true
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
@@ -36,10 +37,18 @@ jobs:
           git config --global --add safe.directory /cloudbees/workspace
 
           . /workspace/venv/bin/activate
-          pip install --upgrade launchable~=1.0
-          which launchable
+          cd ecom
 
-          launchable verify || true
+          # Record a build
+          launchable record build --source . --name "$(git rev-parse HEAD)"
+
+          # **Use '--' to separate Launchable's flags from Pytest's flags**
+          launchable record session \
+            --session-name "$(date +%s)" \
+            -- \
+            pytest . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
+
+          ls -l /workspace
 
       - name: Run migrations
         uses: docker://python:3.12
