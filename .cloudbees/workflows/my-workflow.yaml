@@ -1,41 +1,29 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: My workflow
+
+on:
+  push:
+    branches:
+      - '**'
+
 jobs:
   build:
     steps:
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
-        # If you need LAUNCHABLE_TOKEN here, set env:
-        env:
-          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         run: |
           git clone https://github.com/jalts-808/d.git .
 
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
-        # If you don’t need LAUNCHABLE_TOKEN here, you can omit env:
         run: |
           python -m venv venv
           . venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Install Launchable CLI
-        uses: docker://python:3.12
-        shell: sh
-        # Here we need LAUNCHABLE_TOKEN to authenticate during launchable verify - test1
-        env:
-          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
-        run: |
-          pip install --user --upgrade launchable~=1.0
-
-      - name: Verify Launchable CLI
-        uses: docker://python:3.12
-        shell: sh
-        env:
-          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
-        run: |
-          launchable verify || true
 
       - name: Run migrations
         uses: docker://python:3.12
@@ -53,19 +41,15 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      - name: Run tests with Launchable session
+      - name: Run tests
         uses: docker://python:3.12
         shell: sh
-        env:
-          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
-        continue-on-error: true
+        continue-on-error: true  # Allow the workflow to proceed even if tests fail - check1
         run: |
           . venv/bin/activate
           cd ecom
-          launchable record build --source . --name "$(git rev-parse HEAD)"
-          launchable record session pytest --name "$(date +%s)"
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
-          ls -l /workspace
+          ls -l /workspace  # Verify that the test-results.xml file is generated
 
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
