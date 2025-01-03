@@ -10,14 +10,14 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout code - test
+      # 1) Checkout code with alpine/git
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
-      # 2) Create venv & install Python deps (including your normal requirements)
+      # 2) Create venv & install Python deps
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
@@ -27,17 +27,27 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install Launchable *inside that venv* and verify
+      # 3) Install Launchable in the same venv + verify
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          # Activate the same venv we created above
+          # Install Java + git to allow Launchable commit/diff collection
+          apt-get update && apt-get install -y openjdk-11-jre git
+
+          # Silence "dubious ownership" by marking /cloudbees/workspace as safe
+          git config --global --add safe.directory /cloudbees/workspace
+
+          # Activate venv and install Launchable
           . /workspace/venv/bin/activate
           pip install --upgrade launchable~=1.0
-          which launchable        # Just to confirm it's on PATH now
+
+          # Confirm `launchable` is on PATH
+          which launchable
+
+          # Verify connectivity (needs Java for commit collection)
           launchable verify || true
 
       # 4) Run migrations
@@ -45,7 +55,6 @@ jobs:
         uses: docker://python:3.12
         shell: sh
         run: |
-          # Activate the venv again in this new container
           . /workspace/venv/bin/activate
           cd ecom
           python manage.py migrate
@@ -67,9 +76,14 @@ jobs:
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
+          # Again install Java + git because this is a fresh container
+          apt-get update && apt-get install -y openjdk-11-jre git
+          git config --global --add safe.directory /cloudbees/workspace
+
           . /workspace/venv/bin/activate
           cd ecom
-          # Record a build
+
+          # Record a build (collects Git commit info -> requires Java)
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
           # Start a session
