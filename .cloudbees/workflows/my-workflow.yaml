@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout code (Alpine container is fine just for a simple git clone)
+      # 1) Checkout code (Alpine container is fine just for a simple git clone) - test
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
