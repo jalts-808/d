@@ -10,12 +10,14 @@ on:
 jobs:
   build:
     steps:
+      # 1) Checkout code
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
+      # 2) Set up a Python venv & install requirements
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
@@ -25,6 +27,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 3) Install + Verify Launchable CLI
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
@@ -36,9 +39,10 @@ jobs:
           git config --global --add safe.directory /cloudbees/workspace
 
           . /workspace/venv/bin/activate
-          pip install --upgrade launchable~=1.0
+          pip install --upgrade launchable~=1.0  # Likely ~1.95.0
           launchable verify || true
 
+      # 4) Run migrations
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
@@ -47,6 +51,7 @@ jobs:
           cd ecom
           python manage.py migrate
 
+      # 5) Collect static files
       - name: Collect static files
         uses: docker://python:3.12
         shell: sh
@@ -55,13 +60,15 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      - name: Run tests with Launchable session
+      # 6) Record the build, run Pytest, record test results
+      - name: Run tests and record them in Launchable
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true
+        continue-on-error: true  # Let tests fail but keep going
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
+          # Reinstall Java + Git in this container step
           apt-get update
           apt-get install -y default-jre git
           git config --global --add safe.directory /cloudbees/workspace
@@ -69,19 +76,8 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record a build
+          # (a) Record the build, capturing commit info
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # *No additional arguments after 'pytest'*
-          # Pytest's path & JUnit config are handled by pytest.ini
-          launchable record session pytest \
-            --session-name "$(date +%s)" \
-            || true
-
-          ls -l /workspace
-
-      - name: Publish test results
-        uses: cloudbees-io/publish-test-results@v1
-        with:
-          test-type: JUnit
-          folder-name: /workspace/test-results.xml
+          # (b) Actually run Pytest. 
+          # Pytest arguments (like --junitxml) are in your pyte
