@@ -10,53 +10,56 @@ on:
 jobs:
   build:
     steps:
+      # 1) Checkout code
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
+      # 2) Create venv & install Python deps (including your normal requirements)
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
         run: |
-          python -m venv venv
-          . venv/bin/activate
+          python -m venv /workspace/venv
+          . /workspace/venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install Launchable CLI
+      # 3) Install Launchable *inside that venv* and verify
+      - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          pip install --user --upgrade launchable~=1.0
-
-      - name: Verify Launchable CLI
-        uses: docker://python:3.12
-        shell: sh
-        env:
-          LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
-        run: |
+          # Activate the same venv we created above
+          . /workspace/venv/bin/activate
+          pip install --upgrade launchable~=1.0
+          which launchable        # Just to confirm it's on PATH now
           launchable verify || true
 
+      # 4) Run migrations
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
         run: |
-          . venv/bin/activate
+          # Activate the venv again in this new container
+          . /workspace/venv/bin/activate
           cd ecom
           python manage.py migrate
 
+      # 5) Collect static files
       - name: Collect static files
         uses: docker://python:3.12
         shell: sh
         run: |
-          . venv/bin/activate
+          . /workspace/venv/bin/activate
           cd ecom
           python manage.py collectstatic --noinput
 
+      # 6) Run tests with Launchable session
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
@@ -64,13 +67,19 @@ jobs:
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          . venv/bin/activate
+          . /workspace/venv/bin/activate
           cd ecom
+          # Record a build
           launchable record build --source . --name "$(git rev-parse HEAD)"
+
+          # Start a session
           launchable record session pytest --name "$(date +%s)"
+
+          # Run the tests
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
           ls -l /workspace
 
+      # 7) Publish test results
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
