@@ -9,9 +9,9 @@ on:
 
 jobs:
   build:
-    # Map your Launchable secret property to the LAUNCHABLE_TOKEN environment variable
-    environment:
-      LAUNCHABLE_TOKEN: "${{ properties.LaunchableToken }}"
+    environment: |
+      export LAUNCHABLE_TOKEN="${{ properties.LaunchableToken }}"
+      # Add as many export lines as you want
 
     steps:
       - name: Checkout repository
@@ -74,4 +74,3 @@ jobs:
         with:
           test-type: JUnit
           folder-name: /workspace/test-results.xml
-
