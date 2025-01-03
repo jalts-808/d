@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout repository into /workspace
+      # 1) Checkout repository
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
@@ -27,7 +27,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install + Verify Launchable CLI (requires Java + git)
+      # 3) Install + Verify Launchable CLI
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
@@ -60,15 +60,14 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      # 6) Run tests with Launchable session (note the 'run' subcommand)
+      # 6) Run tests with Launchable session
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Keep going if tests fail
+        continue-on-error: true
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          # Re-install Java + git in this new container
           apt-get update
           apt-get install -y default-jre git
           git config --global --add safe.directory /cloudbees/workspace
@@ -76,19 +75,18 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record a build first
+          # Record a build so Launchable sees this commit
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # NEW SYNTAX: 'launchable record session run <test command>'
+          # Start a test session using the "run" subcommand AND an extra "--" to pass flags to pytest
           launchable record session \
             --session-name "$(date +%s)" \
-            run \
+            run -- \
             pytest . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
 
-          # Show that test-results.xml was generated
           ls -l /workspace
 
-      # 7) Publish test results from /workspace/test-results.xml
+      # 7) Publish test results (JUnit file from /workspace/test-results.xml)
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
