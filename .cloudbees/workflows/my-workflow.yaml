@@ -23,7 +23,7 @@ jobs:
       - name: Install Launchable CLI
         uses: docker://python:3.12
         shell: sh
-        # Here we need LAUNCHABLE_TOKEN to authenticate during launchable verify
+        # Here we need LAUNCHABLE_TOKEN to authenticate during launchable verify - test1
         env:
           LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         run: |
