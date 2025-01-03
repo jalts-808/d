@@ -25,6 +25,18 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Launchable CLI
+        uses: docker://python:3.12
+        shell: sh
+        run: |
+          pip install --user --upgrade launchable~=1.0
+
+      - name: Verify Launchable CLI
+        uses: docker://python:3.12
+        shell: sh
+        run: |
+          launchable verify || true
+
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
@@ -41,13 +53,15 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      - name: Run tests
+      - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow the workflow to proceed even if tests fail - check1
+        continue-on-error: true  # Allow the workflow to proceed even if tests fail
         run: |
           . venv/bin/activate
           cd ecom
+          launchable record build --source . --name "$(git rev-parse HEAD)"
+          launchable record session pytest --name "$(date +%s)"
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
           ls -l /workspace  # Verify that the test-results.xml file is generated
 
