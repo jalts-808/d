@@ -27,7 +27,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install + Verify Launchable CLI (java + git)
+      # 3) Install + Verify Launchable CLI (Java + git)
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
@@ -40,6 +40,7 @@ jobs:
 
           . /workspace/venv/bin/activate
           pip install --upgrade launchable~=1.0
+          # For older CLI versions, it's normal to see success with 'launchable verify'
           launchable verify || true
 
       # 4) Run migrations
@@ -60,7 +61,7 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      # 6) Run tests with Launchable session (OLD CLI usage)
+      # 6) Run tests with Launchable session (Old CLI usage, no extra ‘--’)
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
@@ -75,15 +76,15 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record a build so Launchable sees this commit
+          # Record a build so Launchable sees the commit
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # Use the older style:
-          #   launchable record session pytest [LAUNCHABLE FLAGS] -- [PYTEST FLAGS]
+          # IMPORTANT: older CLI usage - no extra `--`
           launchable record session pytest \
             --session-name "$(date +%s)" \
-            -- . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
+            . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
 
+          # Confirm test-results.xml is generated
           ls -l /workspace
 
       # 7) Publish test results
