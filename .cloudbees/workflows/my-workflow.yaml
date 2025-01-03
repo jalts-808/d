@@ -10,14 +10,14 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout repository
+      # 1) Checkout code
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
-      # 2) Create venv & install Python dependencies
+      # 2) Set up Python environment
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
@@ -27,7 +27,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install + Verify Launchable CLI
+      # 3) Install + Verify Launchable CLI (java + git)
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
@@ -60,7 +60,7 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      # 6) Run tests with Launchable session
+      # 6) Run tests with Launchable session (OLD CLI usage)
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
@@ -78,15 +78,15 @@ jobs:
           # Record a build so Launchable sees this commit
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # Start a test session using the "run" subcommand AND an extra "--" to pass flags to pytest
-          launchable record session \
+          # Use the older style:
+          #   launchable record session pytest [LAUNCHABLE FLAGS] -- [PYTEST FLAGS]
+          launchable record session pytest \
             --session-name "$(date +%s)" \
-            run -- \
-            pytest . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
+            -- . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
 
           ls -l /workspace
 
-      # 7) Publish test results (JUnit file from /workspace/test-results.xml)
+      # 7) Publish test results
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
