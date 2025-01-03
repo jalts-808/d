@@ -10,25 +10,21 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout your code into /workspace
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
-      # 2) Create a Python venv & install deps from requirements.txt
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
         run: |
-          # We are in /workspace (top-level). "requirements.txt" is here.
           python -m venv /workspace/venv
           . /workspace/venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install + verify Launchable (needs Java + Git).
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
@@ -36,7 +32,7 @@ jobs:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
           apt-get update
-          apt-get install -y default-jre git  # Debian 12 has openjdk-17 via "default-jre"
+          apt-get install -y default-jre git
           git config --global --add safe.directory /cloudbees/workspace
 
           . /workspace/venv/bin/activate
@@ -45,7 +41,6 @@ jobs:
 
           launchable verify || true
 
-      # 4) Run Django migrations
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
@@ -54,7 +49,6 @@ jobs:
           cd ecom
           python manage.py migrate
 
-      # 5) Collect static files
       - name: Collect static files
         uses: docker://python:3.12
         shell: sh
@@ -63,11 +57,10 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      # 6) Run tests with Launchable session
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Let pipeline continue even if tests fail
+        continue-on-error: true
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
@@ -78,21 +71,18 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record a build so Launchable sees this commit
+          # Record a build
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # Start a test session with the new CLI syntax
-          launchable record session pytest --session-name "$(date +%s)"
+          # Start a test session with the new CLI usage
+          # We pass our test runner (pytest) and its arguments after `--`
+          launchable record session \
+            --session-name "$(date +%s)" \
+            pytest -- . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
 
-          # Actually run tests with Pytest
-          # - The '.' runs all tests in the current directory (including cart/tests/).
-          # - If you only want cart tests, do "pytest cart/ --junitxml=..." 
-          pytest . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
-
-          # Confirm the JUnit XML is actually in /workspace
+          # Double-check that test-results.xml exists
           ls -l /workspace
 
-      # 7) Publish test results (looking for /workspace/test-results.xml)
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
