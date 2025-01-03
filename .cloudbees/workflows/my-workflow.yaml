@@ -9,6 +9,10 @@ on:
 
 jobs:
   build:
+    # Map your Launchable secret property to the LAUNCHABLE_TOKEN environment variable
+    environment:
+      LAUNCHABLE_TOKEN: "${{ properties.LaunchableToken }}"
+
     steps:
       - name: Checkout repository
         uses: docker://alpine/git
@@ -56,17 +60,18 @@ jobs:
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow the workflow to proceed even if tests fail
+        continue-on-error: true
         run: |
           . venv/bin/activate
           cd ecom
           launchable record build --source . --name "$(git rev-parse HEAD)"
           launchable record session pytest --name "$(date +%s)"
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
-          ls -l /workspace  # Verify that the test-results.xml file is generated
+          ls -l /workspace
 
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
           test-type: JUnit
           folder-name: /workspace/test-results.xml
+
