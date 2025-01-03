@@ -25,6 +25,25 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 1) Install Launchable CLI step
+      - name: Install Launchable CLI
+        uses: docker://python:3.12
+        shell: sh
+        # Make sure the token is available
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
+        run: |
+          pip install --user --upgrade launchable~=1.0
+
+      # 2) Verify Launchable step
+      - name: Verify Launchable CLI
+        uses: docker://python:3.12
+        shell: sh
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
+        run: |
+          launchable verify || true
+
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
@@ -41,13 +60,21 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      - name: Run tests
+      - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow the workflow to proceed even if tests fail - check1
+        continue-on-error: true
+        # We need the token again here because each step is a new container
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         run: |
           . venv/bin/activate
           cd ecom
+          # Record a build so Launchable knows which commit these tests belong to
+          launchable record build --source . --name "$(git rev-parse HEAD)"
+          # Start a test session
+          launchable record session pytest --name "$(date +%s)"
+          # Actually run the tests
           pytest --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml
           ls -l /workspace  # Verify that the test-results.xml file is generated
 
