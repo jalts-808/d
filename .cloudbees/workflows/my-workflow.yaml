@@ -1,28 +1,19 @@
-apiVersion: automation.cloudbees.io/v1alpha1
-kind: workflow
-name: My workflow
-
-on:
-  push:
-    branches:
-      - '**'
-
 jobs:
   build:
-    environment: |
-      export LAUNCHABLE_TOKEN="${{ properties.LaunchableToken }}"
-      # Add as many export lines as you want
-
     steps:
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
+        # If you need LAUNCHABLE_TOKEN here, set env:
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         run: |
           git clone https://github.com/jalts-808/d.git .
 
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
+        # If you don’t need LAUNCHABLE_TOKEN here, you can omit env:
         run: |
           python -m venv venv
           . venv/bin/activate
@@ -32,12 +23,17 @@ jobs:
       - name: Install Launchable CLI
         uses: docker://python:3.12
         shell: sh
+        # Here we need LAUNCHABLE_TOKEN to authenticate during launchable verify
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         run: |
           pip install --user --upgrade launchable~=1.0
 
       - name: Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         run: |
           launchable verify || true
 
@@ -60,6 +56,8 @@ jobs:
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
+        env:
+          LAUNCHABLE_TOKEN: ${{ properties.LaunchableToken }}
         continue-on-error: true
         run: |
           . venv/bin/activate
