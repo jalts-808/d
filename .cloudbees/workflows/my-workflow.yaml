@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout your code (top-level folder has requirements.txt, ecom/, etc.)
+      # 1) Checkout repository into /workspace
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
@@ -27,7 +27,7 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 3) Install + Verify Launchable CLI (needs Java + Git for commit collection)
+      # 3) Install + Verify Launchable CLI (requires Java + git)
       - name: Install + Verify Launchable CLI
         uses: docker://python:3.12
         shell: sh
@@ -40,11 +40,9 @@ jobs:
 
           . /workspace/venv/bin/activate
           pip install --upgrade launchable~=1.0
-          which launchable
-
           launchable verify || true
 
-      # 4) Run migrations (cd into ecom, which has manage.py)
+      # 4) Run migrations
       - name: Run migrations
         uses: docker://python:3.12
         shell: sh
@@ -62,15 +60,15 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      # 6) Run tests with Launchable session
+      # 6) Run tests with Launchable session (note the 'run' subcommand)
       - name: Run tests with Launchable session
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true
+        continue-on-error: true  # Keep going if tests fail
         env:
           LAUNCHABLE_TOKEN: ${{ secrets.LaunchableToken }}
         run: |
-          # Each step is a fresh container, so reinstall Java + Git
+          # Re-install Java + git in this new container
           apt-get update
           apt-get install -y default-jre git
           git config --global --add safe.directory /cloudbees/workspace
@@ -78,20 +76,19 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record a build (collects commit info → Java needed)
+          # Record a build first
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # Start a test session with the new syntax:
-          # --session-name ... -- <test runner> <test runner args>
+          # NEW SYNTAX: 'launchable record session run <test command>'
           launchable record session \
             --session-name "$(date +%s)" \
-            -- \
+            run \
             pytest . --maxfail=5 --disable-warnings --junitxml=/workspace/test-results.xml || true
 
-          # Confirm test-results.xml was generated
+          # Show that test-results.xml was generated
           ls -l /workspace
 
-      # 7) Publish test results to CloudBees from /workspace/test-results.xml
+      # 7) Publish test results from /workspace/test-results.xml
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
         with:
