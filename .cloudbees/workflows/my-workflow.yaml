@@ -10,14 +10,14 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout code
+      # 1) Checkout repository
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
         run: |
           git clone https://github.com/jalts-808/d.git .
 
-      # 2) Set up a Python venv & install requirements
+      # 2) Set up Python environment
       - name: Set up Python environment
         uses: docker://python:3.12
         shell: sh
@@ -37,9 +37,8 @@ jobs:
           apt-get update
           apt-get install -y default-jre git
           git config --global --add safe.directory /cloudbees/workspace
-
           . /workspace/venv/bin/activate
-          pip install --upgrade launchable~=1.0  # Likely ~1.95.0
+          pip install --upgrade launchable~=1.0
           launchable verify || true
 
       # 4) Run migrations
@@ -60,7 +59,7 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      # 6) Record the build, run Pytest, record test results
+      # 6) Record the build, run Pytest, record test results in Launchable
       - name: Run tests and record them in Launchable
         uses: docker://python:3.12
         shell: sh
@@ -76,8 +75,23 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # (a) Record the build, capturing commit info
+          # (a) Record build so Launchable sees the commit
           launchable record build --source . --name "$(git rev-parse HEAD)"
 
-          # (b) Actually run Pytest. 
-          # Pytest arguments (like --junitxml) are in your pyte
+          # (b) Run Pytest (arguments like --junitxml should be in pytest.ini)
+          pytest || true
+
+          # (c) Confirm test-results.xml was created
+          echo "DEBUG: Listing /workspace after Pytest"
+          ls -l /workspace
+
+          # (d) Record test results in Launchable (upload JUnit file)
+          launchable record tests pytest /workspace/test-results.xml \
+            --build "$(git rev-parse HEAD)" || true
+
+      # 7) Publish test results to CloudBees
+      - name: Publish test results
+        uses: cloudbees-io/publish-test-results@v1
+        with:
+          test-type: JUnit
+          folder-name: /workspace/test-results.xml
