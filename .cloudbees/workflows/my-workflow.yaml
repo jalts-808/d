@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     steps:
-      # 1) Checkout code
+      # 1) Checkout code - test
       - name: Checkout repository
         uses: docker://alpine/git
         shell: sh
