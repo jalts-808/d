@@ -44,7 +44,7 @@ jobs:
       - name: Run tests
         uses: docker://python:3.12
         shell: sh
-        continue-on-error: true  # Allow the workflow to proceed even if tests fail
+        continue-on-error: true  # Allow the workflow to proceed even if tests fail - check1
         run: |
           . venv/bin/activate
           cd ecom
