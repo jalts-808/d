@@ -54,7 +54,7 @@ jobs:
           cd ecom
           python manage.py collectstatic --noinput
 
-      - name: Run tests and record them in Launchable
+      - name: Run tests and record them
         uses: docker://python:3.12
         shell: sh
         continue-on-error: true
@@ -68,19 +68,17 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Optionally record a build if you want, 
-          # but in 1.95.0 it won't automatically link to "record tests" anyway.
-          launchable record build --source . --name "$(git rev-parse HEAD)" || true
+          # DO NOT DO: launchable record build … 
+          # because older CLI can’t link test results to that build anyway
 
-          # Run tests (pytest.ini points to /workspace/test-results.xml)
           pytest || true
 
-          echo "DEBUG: Checking /workspace"
           ls -l /workspace
 
-          # Now record results with 'raw' profile and '--no-build' 
-          # because 1.95.0 doesn't support 'pytest' or '--build'
+          # Record test results with no build, using raw
+          # => no conflict, no .launchable file
           launchable record tests --no-build raw /workspace/test-results.xml || true
+
 
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
