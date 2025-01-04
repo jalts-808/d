@@ -68,17 +68,19 @@ jobs:
           . /workspace/venv/bin/activate
           cd ecom
 
-          # Record the build (the older CLI won't link tests to it, but let's keep it anyway).
-          launchable record build --source . --name "$(git rev-parse HEAD)"
+          # Optionally record a build if you want, 
+          # but in 1.95.0 it won't automatically link to "record tests" anyway.
+          launchable record build --source . --name "$(git rev-parse HEAD)" || true
 
+          # Run tests (pytest.ini points to /workspace/test-results.xml)
           pytest || true
 
-          echo "DEBUG: Listing /workspace after Pytest"
+          echo "DEBUG: Checking /workspace"
           ls -l /workspace
 
-          # Use --no-build if your older CLI doesn't recognize --build
-          # This records the test results in Launchable (a test session) but not strictly tied to a named build
-          launchable record tests --no-build pytest /workspace/test-results.xml || true
+          # Now record results with 'raw' profile and '--no-build' 
+          # because 1.95.0 doesn't support 'pytest' or '--build'
+          launchable record tests --no-build raw /workspace/test-results.xml || true
 
       - name: Publish test results
         uses: cloudbees-io/publish-test-results@v1
